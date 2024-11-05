@@ -26,4 +26,4 @@ def Page():
     solara.DataFrame(products_list.value)
 
 # Run the Solara app
-solara.run(Page)
+solara.start_server(Page)
