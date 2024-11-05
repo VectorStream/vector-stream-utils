@@ -1,5 +1,6 @@
 import json
 import time
+import random  # Add this line
 from kafka import KafkaProducer
 
 # Kafka configuration
@@ -30,6 +31,7 @@ products = {
     20: {'name': 'Keyboard', 'category': 'Electronics', 'description': 'Mechanical keyboard for improved typing experience.'},
 }
 
+
 producer = KafkaProducer(bootstrap_servers=bootstrap_servers,
                          value_serializer=lambda v: json.dumps(v).encode('utf-8'))
 
@@ -49,4 +51,3 @@ while True:
     producer.send(topic_name, value=event)
     print(f"Sent event: {event}")
     time.sleep(random.uniform(1, 5)) # Simulate variable inter-event time
-
