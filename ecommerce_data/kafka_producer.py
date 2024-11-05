@@ -5,6 +5,7 @@ import random
 import time
 import logging
 import socket
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -39,17 +40,15 @@ def get_kafka_bootstrap_server():
     Attempt to resolve Kafka bootstrap server dynamically
     Supports multiple connection methods
     """
-    # Method 1: Direct localhost (for local testing)
-    local_servers = ['localhost:9092', '127.0.0.1:9092']
+    # Retrieve local_servers from environment variable
+    local_services = os.environ.get('LOCAL_SERVICES', None)
     
-    # Method 2: Try resolving OpenShift service
-    try:
-        # Replace with your actual Kafka service name in OpenShift
-        kafka_service_name = 'kafka-cluster-kafka-bootstrap'
-        kafka_ip = socket.gethostbyname(kafka_service_name)
-        local_servers.append(f"{kafka_ip}:9092")
-    except Exception as e:
-        logger.warning(f"Could not resolve Kafka service: {e}")
+    if local_services:
+        local_servers = [server.strip() for server in local_services.split(',')]
+    else:
+        # Fallback to default local server if env variable is not set
+        local_servers = ["localhost:9092"]
+        logger.warning("LOCAL_SERVICES environment variable not set. Using default.")
     
     return local_servers
 
