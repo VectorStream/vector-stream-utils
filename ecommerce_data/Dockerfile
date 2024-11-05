@@ -5,10 +5,10 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Copy the application code into the container
-COPY kafka_producer.py solara_app.py /app/
+COPY kafka_producer.py app.py /app/
 
 # Install required Python packages
-RUN pip install --no-cache-dir asyncua aiokafka solara ipywidgets voila
+RUN pip install --no-cache-dir asyncua aiokafka flask
 
 # Expose the port that Solara will run on
 EXPOSE 8765
