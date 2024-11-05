@@ -5,16 +5,17 @@ FROM python:3.9
 WORKDIR /app
 
 # Add current directory files to /app in container
-ADD ecommerce_data_consumer.py /app
+ADD kafka_producer.py /app
+ADD solara_app.py /app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir asyncua aiokafka
+RUN pip install --no-cache-dir asyncua aiokafka solara ipywidgets voila
 
-# Make TCP port 4840 available to the world outside this container
-EXPOSE 4840
+# Make TCP port 8765 available to the world outside this container
+EXPOSE 8765
 
 # Define environment variable for verbose logging
 ENV PYTHONUNBUFFERED=1
 
-# Run main.py when the container launches
-CMD ["python", "-u", "ecommerce_data_consumer.py"]
+# Run solara_app.py when the container launches
+CMD ["python", "-u", "solara_app.py"]

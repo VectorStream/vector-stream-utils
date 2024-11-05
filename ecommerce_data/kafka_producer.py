@@ -12,7 +12,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('kafka_producer.log')
+        logging.FileHandler('/tmp/kafka_producer.log')  # Changed log file path
     ]
 )
 logger = logging.getLogger(__name__)
@@ -53,31 +53,30 @@ def get_kafka_bootstrap_server():
     
     return local_servers
 
-async def produce_events():
-    """
-    Asynchronous Kafka event producer with robust error handling
-    """
-    bootstrap_servers = get_kafka_bootstrap_server()
-    logger.info(f"Attempting to connect to Kafka servers: {bootstrap_servers}")
+class KafkaProducer:
+    def __init__(self):
+        self.producer = None
+        self.running = False
 
-    # Configure producer with enhanced settings
-    producer = aiokafka.AIOKafkaProducer(
-        bootstrap_servers=bootstrap_servers,
-        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-        client_id='ecommerce-producer',
-        request_timeout_ms=5000,     # 5 seconds timeout
-        max_block_ms=10000,          # 10 seconds max blocking time
-        retry_backoff_ms=500         # 500ms between retries
-    )
+    async def start(self):
+        bootstrap_servers = get_kafka_bootstrap_server()
+        logger.info(f"Attempting to connect to Kafka servers: {bootstrap_servers}")
 
-    try:
-        # Connect to Kafka cluster
-        await producer.start()
+        self.producer = aiokafka.AIOKafkaProducer(
+            bootstrap_servers=bootstrap_servers,
+            value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+            client_id='ecommerce-producer',
+            request_timeout_ms=5000,     # 5 seconds timeout
+            max_block_ms=10000,          # 10 seconds max blocking time
+            retry_backoff_ms=500         # 500ms between retries
+        )
+
+        await self.producer.start()
         logger.info("Kafka producer started successfully")
+        self.running = True
 
-        while True:
+        while self.running:
             try:
-                # Enhanced event generation with more context
                 event_type = random.choices(['view', 'purchase', 'cart_add'], 
                                              weights=[0.6, 0.3, 0.1])[0]
                 product_id = random.choice(list(products.keys()))
@@ -94,41 +93,20 @@ async def produce_events():
                     'session_id': random.randint(1000, 9999)
                 }
 
-                # Send event with logging
-                await producer.send_and_wait(topic_name, event)
+                await self.producer.send_and_wait(topic_name, event)
                 logger.info(f"Sent {event_type} event for Product: {event['product_name']}")
 
-                # Simulate variable event generation time
                 await asyncio.sleep(random.uniform(0.5, 3))
 
             except Exception as send_error:
                 logger.error(f"Error sending event: {send_error}")
-                # Wait a bit before retrying to prevent tight error loops
                 await asyncio.sleep(2)
 
-    except aiokafka.errors.KafkaConnectionError as conn_err:
-        logger.critical(f"Kafka Connection Error: {conn_err}")
-        raise
-    except Exception as e:
-        logger.critical(f"Unexpected error in producer: {e}")
-        raise
-    finally:
-        # Ensure clean producer shutdown
-        await producer.stop()
-        logger.info("Kafka producer stopped")
+    async def stop(self):
+        if self.producer:
+            await self.producer.stop()
+            logger.info("Kafka producer stopped")
+        self.running = False
 
-async def main():
-    """Main async entry point"""
-    try:
-        await produce_events()
-    except Exception as e:
-        logger.error(f"Fatal error in main: {e}")
-
-if __name__ == "__main__":
-    try:
-        # Use asyncio.run for Python 3.7+
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Producer stopped by user")
-    except Exception as e:
-        logger.critical(f"Unhandled exception: {e}")
+    def is_running(self):
+        return self.running
