@@ -1,4 +1,6 @@
 import unittest
+from unittest.mock import patch, ANY
+import asyncio
 from kafka_producer import get_kafka_bootstrap_server, KafkaProducer
 
 class TestKafkaProducer(unittest.TestCase):
