@@ -112,7 +112,7 @@ async def simulate_customer_interaction():
             "purchase_type": purchase_type
         }
         await produce_to_kafka(KAFKA_TOPIC_PURCHASES, purchase_data)
-        REVENUE_GAUGE.set(REVENUE_GAUGE.get() + inventory[purchase_item_id]["price"])
+        REVENUE_GAUGE.inc(inventory[purchase_item_id]["price"])
         logging.info(f"Purchase Event: {purchase_data}")
 
 async def main():
