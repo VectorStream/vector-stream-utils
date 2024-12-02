@@ -49,7 +49,7 @@ account_mapping = {
     "012345678": "Gabriel Russell", "987654320": "Abigail Jenkins"
 }
 
-async def produce_to_kafka(data):
+async def produce_to_kafka(data, topic):
     producer = AIOKafkaProducer(bootstrap_servers=KAFKA_BROKER)
     await producer.start()
     try:
@@ -59,7 +59,7 @@ async def produce_to_kafka(data):
             ("account_holder", data["AccountHolder"].encode('utf-8')),
             ("item", data["Item"].encode('utf-8'))
         ]
-        await producer.send(KAFKA_TOPIC, json.dumps(data).encode('utf-8'), key=key, headers=headers)
+        await producer.send(topic, json.dumps(data).encode('utf-8'), key=key, headers=headers)
     finally:
         await producer.stop()
 
@@ -99,7 +99,7 @@ async def main():
             "RiskScore": risk_score
         }
 
-        await produce_to_kafka(transaction_data)
+        await produce_to_kafka(transaction_data, account_number)
 
         # Update Prometheus metrics
         TRANSACTION_AMOUNT_GAUGE.set(amount)
