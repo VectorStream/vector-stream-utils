@@ -37,6 +37,7 @@ TRANSACTION_LATENCY_GAUGE = Gauge('transaction_latency', 'Transaction Latency')
 RISK_SCORE_GAUGE = Gauge('risk_score', 'Risk Score')
 
 TRANSACTION_INTERVAL = float(os.environ.get("TRANSACTION_INTERVAL", 1.0))
+FRAUD_PERCENTAGE = float(os.environ.get("FRAUD_PERCENTAGE", 2.0))
 
 # Map account numbers to account holders
 account_mapping = {
@@ -78,7 +79,13 @@ async def main():
 
         transaction_id = f"TXN{transaction_count:05d}"
         account_number = random.choice(account_numbers)
-        account_holder = random.choice(account_holders)
+        
+        # Determine if this transaction should be fraudulent
+        if random.uniform(0, 100) < FRAUD_PERCENTAGE:
+            account_holder = random.choice(account_holders)
+        else:
+            account_holder = account_mapping[account_number]
+        
         item = random.choice(items)
         amount = round(random.uniform(10.0, 10000.0), 2)
         transaction_latency = random.uniform(0.1, 2.0)
