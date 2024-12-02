@@ -74,7 +74,12 @@ async def produce_to_kafka(topic, data):
     producer = AIOKafkaProducer(bootstrap_servers=KAFKA_BROKER)
     await producer.start()
     try:
-        await producer.send(topic, json.dumps(data).encode('utf-8'))
+        key = data["item_id"].encode('utf-8')
+        headers = [
+            ("content-type", b"application/json"),
+            ("event-type", data["action"].encode('utf-8') if "action" in data else b"purchase")
+        ]
+        await producer.send(topic, json.dumps(data).encode('utf-8'), key=key, headers=headers)
     finally:
         await producer.stop()
 
@@ -115,6 +120,9 @@ async def simulate_customer_interaction():
         REVENUE_GAUGE.inc(inventory[purchase_item_id]["price"])
         logging.info(f"Purchase Event: {purchase_data}")
 
+# Interaction interval setup
+INTERACTION_INTERVAL = float(os.environ.get("INTERACTION_INTERVAL", 1.0))
+
 async def main():
     _logger = logging.getLogger("asyncua")
     # Start Prometheus server
@@ -122,7 +130,7 @@ async def main():
 
     # Simple loop to continuously simulate customer interactions
     while True:
-        await asyncio.sleep(random.uniform(0.1, 1.0))  # Simulate interactions at varying rates
+        await asyncio.sleep(random.uniform(0.1, INTERACTION_INTERVAL))  # Simulate interactions at varying rates
         await simulate_customer_interaction()
 
 if __name__ == "__main__":
