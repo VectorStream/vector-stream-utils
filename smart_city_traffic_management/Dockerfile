@@ -8,7 +8,7 @@ WORKDIR /app
 ADD smart_city_traffic_management.py /app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir asyncua aiokafka prometheus_client
+RUN pip install --no-cache-dir asyncua aiokafka prometheus_client kafka-python
 
 # Make TCP port 4840 available to the world outside this container
 EXPOSE 4840
