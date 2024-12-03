@@ -3,6 +3,7 @@ import json
 import random
 import os
 from aiokafka import AIOKafkaProducer
+from aiokafka.helpers import create_topic_if_missing
 
 # Kafka configuration
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "traffic_data")
@@ -16,7 +17,11 @@ async def produce_to_kafka(data):
     await producer.send_and_wait(KAFKA_TOPIC, json.dumps(data).encode())
     await producer.stop()
 
+async def ensure_kafka_topic():
+    await create_topic_if_missing(KAFKA_BROKER, KAFKA_TOPIC, num_partitions=1, replication_factor=1)
+
 async def main():
+    await ensure_kafka_topic()
     while True:
         await asyncio.sleep(INTERVAL)
 
