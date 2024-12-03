@@ -2,9 +2,14 @@ import asyncio
 import json
 import random
 import os
+import logging
 from aiokafka import AIOKafkaProducer
 from kafka.admin import KafkaAdminClient, NewTopic
 from kafka.errors import TopicAlreadyExistsError
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Kafka configuration
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "traffic_data")
@@ -20,18 +25,21 @@ def ensure_kafka_topic():
     topic = NewTopic(name=KAFKA_TOPIC, num_partitions=1, replication_factor=1)
     try:
         admin_client.create_topics([topic])
-        print(f"Topic '{KAFKA_TOPIC}' created.")
+        logger.info(f"Topic '{KAFKA_TOPIC}' created.")
     except TopicAlreadyExistsError:
-        print(f"Topic '{KAFKA_TOPIC}' already exists.")
+        logger.info(f"Topic '{KAFKA_TOPIC}' already exists.")
     finally:
         admin_client.close()
 
 # Function to send data to Kafka
 async def produce_to_kafka(producer, data):
     try:
-        await producer.send_and_wait(KAFKA_TOPIC, json.dumps(data).encode())
+        key = str(data["Time of Day"]).encode()
+        headers = [("content-type", b"application/json")]
+        await producer.send_and_wait(KAFKA_TOPIC, json.dumps(data).encode(), key=key, headers=headers)
+        logger.info(f"Data sent to Kafka: {data}")
     except Exception as e:
-        print(f"Error sending data to Kafka: {e}")
+        logger.error(f"Error sending data to Kafka: {e}")
 
 # Main function to simulate data and send it to Kafka
 async def main():
@@ -41,7 +49,7 @@ async def main():
     # Create a Kafka producer
     producer = AIOKafkaProducer(bootstrap_servers=KAFKA_BROKER)
     await producer.start()
-    print("Kafka producer started.")
+    logger.info("Kafka producer started.")
 
     try:
         current_state_index = 0  # For traffic signal state machine
@@ -127,10 +135,10 @@ async def main():
             await produce_to_kafka(producer, kafka_data)
 
     except KeyboardInterrupt:
-        print("Stopping producer.")
+        logger.info("Stopping producer.")
     finally:
         await producer.stop()
-        print("Kafka producer stopped.")
+        logger.info("Kafka producer stopped.")
 
 if __name__ == "__main__":
     asyncio.run(main())
